@@ -1,0 +1,35 @@
+name: TR-9090 Build
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show repo contents (debug)
+        shell: pwsh
+        run: Get-ChildItem -Recurse -Depth 1 | Select-Object FullName
+
+      - name: Configure
+        run: cmake -S . -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\TR9090.iss"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TR-9090-Windows
+          path: |
+            installer/Output/*.exe
+            build/TR9090_artefacts/Release/Standalone/*.exe
+            build/TR9090_artefacts/Release/VST3/**
